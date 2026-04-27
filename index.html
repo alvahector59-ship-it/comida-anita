@@ -290,11 +290,16 @@ Tu pedido de hoy:
 <div class="modal-overlay" id="orderModal"><div class="modal"><h3 id="orderModalTitle">Nuevo Pedido</h3>
 <div class="form-group"><label>Cliente</label><select id="orderClient"></select></div>
 <div class="form-group" id="dishGroup"><label>Platillos del Menú</label><div id="dishesContainer"></div></div>
-<div id="fridayOptions" style="display:none"><div class="form-group"><label>🌅 Desayuno Viernes</label><select id="fridayDish"><option value="chilaquiles">Chilaquiles ($70)</option></select></div>
-<div class="form-group"><label>Extras</label>
-<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><label style="display:flex;align-items:center;gap:4px"><input type="checkbox" id="extraHuevo" value="8"> 🥚 Huevo ($8 c/u)</label>
-<select id="huevoQty" onchange="calcOrderTotal()" style="width:60px"><option value="1">x1</option><option value="2">x2</option></select></div>
-<div><label><input type="checkbox" id="extraBistec" value="20"> 🥩 Bistec ($20)</label></div></div></div>
+<div id="fridayOptions" style="display:none">
+<div class="form-group"><label>🥚 Huevos ($8 c/u)</label>
+<div style="display:flex;align-items:center;gap:6px"><button class="btn btn-sm btn-outline" type="button" onclick="changeFridayExtra('huevoQty',-1)">−</button>
+<input type="number" id="huevoQty" value="0" min="0" style="width:44px;text-align:center;font-weight:700;border-radius:8px" oninput="calcOrderTotal()">
+<button class="btn btn-sm btn-primary" type="button" onclick="changeFridayExtra('huevoQty',1)">+</button></div></div>
+<div class="form-group"><label>🥩 Bistec ($20 c/u)</label>
+<div style="display:flex;align-items:center;gap:6px"><button class="btn btn-sm btn-outline" type="button" onclick="changeFridayExtra('bistecQty',-1)">−</button>
+<input type="number" id="bistecQty" value="0" min="0" style="width:44px;text-align:center;font-weight:700;border-radius:8px" oninput="calcOrderTotal()">
+<button class="btn btn-sm btn-primary" type="button" onclick="changeFridayExtra('bistecQty',1)">+</button></div></div>
+</div>
 <div class="form-group"><label>🥤 Aguas</label><div id="aguasContainer"></div></div>
 <div class="form-group"><label>Extras / Especial</label></div><div id="extrasContainer"></div>
 <button class="btn btn-sm btn-warning" onclick="addExtraField()">+ Extra</button>
@@ -351,7 +356,7 @@ async function dbDel(col,id){await db.collection(col).doc(id).delete()}
 
 // ===== DEFAULT DATA =====
 const DEFAULT_CLIENTS=['Hector','Diana','Bryan','Anel','Eduardo Fernandez','Lupita','Liz Becker','Alicia','Machuca','Dani Basto','Eduardo Macropay','Alfredo Coba','Alfredo Macropay','Angelica','Tehuitzil','Oscar','Larry'];
-const DEFAULT_GUISOS=[{name:'Pechuga Asada',price:100,cat:'fijo'},{name:'Pechuga Empanizada',price:100,cat:'fijo'},{name:'Tacos Dorados',price:100,cat:'guiso'},{name:'Enchiladas Verdes',price:100,cat:'guiso'},{name:'Enchiladas de Mole',price:100,cat:'guiso'},{name:'Bistec en Pasilla',price:100,cat:'guiso'},{name:'Milanesas Empanizadas',price:100,cat:'guiso'},{name:'Albóndigas',price:100,cat:'guiso'},{name:'Filete de Pescado',price:100,cat:'guiso'},{name:'Tinga',price:100,cat:'guiso'},{name:'Chiles Rellenos',price:100,cat:'guiso'},{name:'Picadillo',price:100,cat:'guiso'},{name:'Pechuga Parmesana',price:100,cat:'guiso'},{name:'Bistec a la Mexicana',price:100,cat:'guiso'},{name:'Pambazos',price:100,cat:'guiso'},{name:'Sopes',price:100,cat:'guiso'},{name:'Chilaquiles',price:70,cat:'desayuno'}];
+const DEFAULT_GUISOS=[{name:'Pechuga Asada',price:100,cat:'fijo'},{name:'Pechuga Empanizada',price:100,cat:'fijo'},{name:'Tacos Dorados',price:100,cat:'guiso'},{name:'Enchiladas Verdes',price:100,cat:'guiso'},{name:'Enchiladas de Mole',price:100,cat:'guiso'},{name:'Bistec en Pasilla',price:100,cat:'guiso'},{name:'Milanesas Empanizadas',price:100,cat:'guiso'},{name:'Albóndigas',price:100,cat:'guiso'},{name:'Filete de Pescado',price:100,cat:'guiso'},{name:'Tinga',price:100,cat:'guiso'},{name:'Chiles Rellenos',price:100,cat:'guiso'},{name:'Picadillo',price:100,cat:'guiso'},{name:'Pechuga Parmesana',price:100,cat:'guiso'},{name:'Bistec a la Mexicana',price:100,cat:'guiso'},{name:'Pambazos',price:70,cat:'desayuno'},{name:'Sopes',price:70,cat:'desayuno'},{name:'Chilaquiles',price:70,cat:'desayuno'}];
 const DEFAULT_AGUAS=[{name:'Jamaica',price:15},{name:'Limón',price:15},{name:'Guayaba',price:15},{name:'Tamarindo',price:15},{name:'Naranja',price:15},{name:'Piña',price:15}];
 
 async function seed(){
@@ -439,7 +444,8 @@ async function loadDayOrders(){const date=document.getElementById('selectedDate'
 const menu=await dbGet('dayMenus',date);const menuCard=document.getElementById('dayMenuCard'),noWarn=document.getElementById('noMenuWarning');
 const fijos=allGuisos.filter(g=>g.cat==='fijo');let menuReady=false;
 if(friday){menuReady=true;menuCard.style.display='block';noWarn.style.display='none';
-document.getElementById('dayMenuDisplay').innerHTML='<div class="menu-day-card"><h3>🌅 Viernes - Desayunos</h3><div class="menu-items"><div class="menu-item desayuno"><div class="name">Chilaquiles</div><div class="price">$70</div></div><div class="menu-item desayuno"><div class="name">+ Huevo</div><div class="price">+$8</div></div><div class="menu-item desayuno"><div class="name">+ Bistec</div><div class="price">+$20</div></div></div></div>';
+const desayunos=allGuisos.filter(g=>g.cat==='desayuno');
+document.getElementById('dayMenuDisplay').innerHTML='<div class="menu-day-card"><h3>🌅 Viernes - Desayunos</h3><div class="menu-items">'+desayunos.map(g=>'<div class="menu-item desayuno"><div class="name">'+g.name+'</div><div class="price">$'+g.price+'</div></div>').join('')+'<div class="menu-item"><div class="name">+ Huevo</div><div class="price">+$8</div></div><div class="menu-item"><div class="name">+ Bistec</div><div class="price">+$20</div></div></div></div>';
 }else if(menu&&menu.guisoIds&&menu.guisoIds.length>0){menuReady=true;menuCard.style.display='block';noWarn.style.display='none';
 const mg=menu.guisoIds.map(id=>allGuisos.find(x=>x.id===id)).filter(Boolean);
 document.getElementById('dayMenuDisplay').innerHTML='<div class="menu-day-card"><h3>🍽️ Menú del '+dayName+'</h3><div class="menu-items">'+
@@ -483,8 +489,9 @@ const origDate=document.getElementById('selectedDate').value;document.getElement
 await openNewOrder();editingOrderId=o.id;editingOrderDate=o.date;
 document.getElementById('orderModalTitle').textContent='✏️ Editar Pedido';document.getElementById('orderClient').value=o.clientId;
 const friday=isFriday(o.date);
-if(friday){document.getElementById('extraHuevo').checked=(o.items[0]&&o.items[0].extra||'').includes('huevo');document.getElementById('extraBistec').checked=(o.items[0]&&o.items[0].extra||'').includes('bistec')}
-else if(o.items&&o.items.length){o.items.forEach(item=>{const row=document.querySelector('.dish-qty-row[data-id="'+item.guisoId+'"]');if(row)row.querySelector('.dish-qty').value=item.qty||1})}
+if(o.items&&o.items.length){o.items.forEach(item=>{const row=document.querySelector('.dish-qty-row[data-id="'+item.guisoId+'"]');if(row)row.querySelector('.dish-qty').value=item.qty||1})}
+if(friday&&o.extras){o.extras.forEach(e=>{if(e.name.includes('Huevo'))document.getElementById('huevoQty').value=Math.round(e.price/8);
+if(e.name.includes('Bistec'))document.getElementById('bistecQty').value=Math.round(e.price/20)})}
 if(o.agua){const ag=allAguas.find(a=>a.name===o.agua.name);if(ag){const row=document.querySelector('.agua-qty-row[data-name="'+o.agua.name+'"]');if(row)row.querySelector('.agua-qty').value=1}}
 if(o.aguas){o.aguas.forEach(a=>{const row=document.querySelector('.agua-qty-row[data-name="'+a.name+'"]');if(row)row.querySelector('.agua-qty').value=a.qty||1})}
 document.getElementById('extrasContainer').innerHTML='';(o.extras||[]).forEach(e=>{addExtraField();const items=document.querySelectorAll('#extrasContainer .extra-item');const last=items[items.length-1];last.querySelector('input[type="text"]').value=e.name;last.querySelector('input[type="number"]').value=e.price});
@@ -500,11 +507,15 @@ const dc=allClients.filter(c=>(c.days||[]).includes(dayName)).sort(sortName);
 const oc=allClients.filter(c=>!(c.days||[]).includes(dayName)).sort(sortName);
 sel.innerHTML='<option value="">-- Buscar cliente --</option><optgroup label="📌 '+dayName+'">'+dc.map(c=>'<option value="'+c.id+'">'+c.name+'</option>').join('')+'</optgroup><optgroup label="Otros">'+oc.map(c=>'<option value="'+c.id+'">'+c.name+'</option>').join('')+'</optgroup>';
 const dCont=document.getElementById('dishesContainer');const fijos=allGuisos.filter(g=>g.cat==='fijo');
+if(friday){
+const desayunos=allGuisos.filter(g=>g.cat==='desayuno');
+dCont.innerHTML=desayunos.map(g=>'<div class="dish-qty-row" data-id="'+g.id+'" data-name="'+g.name+'" data-price="'+g.price+'" style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)"><span style="flex:1;font-weight:600;font-size:.9em">'+g.name+' <small style="color:var(--text3)">$'+g.price+'</small></span><div style="display:flex;align-items:center;gap:4px"><button class="btn btn-sm btn-outline" type="button" onclick="changeDishQty(this,-1)" style="width:28px;height:28px;padding:0;border-radius:50%;font-size:1em">−</button><input type="number" class="dish-qty" value="0" min="0" style="width:44px;text-align:center;padding:4px;font-weight:700;font-size:1em;border-radius:8px" oninput="calcOrderTotal()"><button class="btn btn-sm btn-primary" type="button" onclick="changeDishQty(this,1)" style="width:28px;height:28px;padding:0;border-radius:50%;font-size:1em">+</button></div></div>').join('');
+document.getElementById('huevoQty').value=0;document.getElementById('bistecQty').value=0;
+}else{
 const md=await dbGet('dayMenus',date),mg=md&&md.guisoIds&&md.guisoIds.length?md.guisoIds.map(id=>allGuisos.find(g=>g.id===id)).filter(Boolean):[];
 const menuDishes=[...fijos,...mg];
-dCont.innerHTML=menuDishes.map(g=>'<div class="dish-qty-row" data-id="'+g.id+'" data-name="'+g.name+'" data-price="'+g.price+'" style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)"><span style="flex:1;font-weight:600;font-size:.9em">'+g.name+' <small style="color:var(--text3)">$'+g.price+'</small></span><div style="display:flex;align-items:center;gap:4px"><button class="btn btn-sm btn-outline" type="button" onclick="changeDishQty(this,-1)" style="width:28px;height:28px;padding:0;border-radius:50%;font-size:1em">−</button><input type="number" class="dish-qty" value="0" min="0" style="width:44px;text-align:center;padding:4px;font-weight:700;font-size:1em;border-radius:8px" oninput="calcOrderTotal()"><button class="btn btn-sm btn-primary" type="button" onclick="changeDishQty(this,1)" style="width:28px;height:28px;padding:0;border-radius:50%;font-size:1em">+</button></div></div>').join('');
-document.getElementById('fridayOptions').style.display=friday?'block':'none';document.getElementById('dishGroup').style.display=friday?'none':'block';
-document.getElementById('extraHuevo').checked=false;document.getElementById('extraBistec').checked=false;
+dCont.innerHTML=menuDishes.map(g=>'<div class="dish-qty-row" data-id="'+g.id+'" data-name="'+g.name+'" data-price="'+g.price+'" style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)"><span style="flex:1;font-weight:600;font-size:.9em">'+g.name+' <small style="color:var(--text3)">$'+g.price+'</small></span><div style="display:flex;align-items:center;gap:4px"><button class="btn btn-sm btn-outline" type="button" onclick="changeDishQty(this,-1)" style="width:28px;height:28px;padding:0;border-radius:50%;font-size:1em">−</button><input type="number" class="dish-qty" value="0" min="0" style="width:44px;text-align:center;padding:4px;font-weight:700;font-size:1em;border-radius:8px" oninput="calcOrderTotal()"><button class="btn btn-sm btn-primary" type="button" onclick="changeDishQty(this,1)" style="width:28px;height:28px;padding:0;border-radius:50%;font-size:1em">+</button></div></div>').join('');}
+document.getElementById('fridayOptions').style.display=friday?'block':'none';document.getElementById('dishGroup').style.display='block';
 document.getElementById('extrasContainer').innerHTML='';document.getElementById('orderNotes').value='';
 document.getElementById('aguasContainer').innerHTML=allAguas.map(a=>'<div class="agua-qty-row" data-id="'+a.id+'" data-name="'+a.name+'" data-price="'+a.price+'" style="display:flex;align-items:center;gap:8px;padding:4px 0"><span style="flex:1;font-size:.88em">🥤 '+a.name+' <small style="color:var(--text3)">$'+a.price+'</small></span><div style="display:flex;align-items:center;gap:4px"><button class="btn btn-sm btn-outline" type="button" onclick="changeAguaQty(this,-1)" style="width:24px;height:24px;padding:0;border-radius:50%;font-size:.9em">−</button><input type="number" class="agua-qty" value="0" min="0" style="width:36px;text-align:center;padding:2px;font-weight:700;font-size:.9em;border-radius:6px" oninput="calcOrderTotal()"><button class="btn btn-sm btn-primary" type="button" onclick="changeAguaQty(this,1)" style="width:24px;height:24px;padding:0;border-radius:50%;font-size:.9em">+</button></div></div>').join('');
 calcOrderTotal();document.getElementById('orderModal').classList.add('active')}
@@ -513,10 +524,11 @@ function addExtraField(){const d=document.createElement('div');d.className='extr
 
 function changeDishQty(btn,delta){const input=btn.parentElement.querySelector('.dish-qty');let v=parseInt(input.value)||0;v=Math.max(0,v+delta);input.value=v;calcOrderTotal()}
 function changeAguaQty(btn,delta){const input=btn.parentElement.querySelector('.agua-qty');let v=parseInt(input.value)||0;v=Math.max(0,v+delta);input.value=v;calcOrderTotal()}
+function changeFridayExtra(id,delta){const input=document.getElementById(id);let v=parseInt(input.value)||0;v=Math.max(0,v+delta);input.value=v;calcOrderTotal()}
 
 function calcOrderTotal(){const date=document.getElementById('selectedDate').value,friday=isFriday(date);let t=0;
-if(friday){t=70;if(document.getElementById('extraHuevo').checked)t+=8*parseInt(document.getElementById('huevoQty').value||1);if(document.getElementById('extraBistec').checked)t+=20}
-else{document.querySelectorAll('.dish-qty-row').forEach(row=>{const qty=parseInt(row.querySelector('.dish-qty').value)||0;const price=parseInt(row.dataset.price)||0;t+=qty*price})}
+document.querySelectorAll('.dish-qty-row').forEach(row=>{const qty=parseInt(row.querySelector('.dish-qty').value)||0;const price=parseInt(row.dataset.price)||0;t+=qty*price});
+if(friday){t+=8*(parseInt(document.getElementById('huevoQty').value)||0);t+=20*(parseInt(document.getElementById('bistecQty').value)||0)}
 document.querySelectorAll('#extrasContainer .extra-item').forEach(i=>{t+=parseInt(i.querySelector('input[type="number"]').value)||0});
 const aid=document.getElementById('orderAgua');
 document.querySelectorAll('.agua-qty-row').forEach(row=>{const qty=parseInt(row.querySelector('.agua-qty').value)||0;const price=parseInt(row.dataset.price)||0;t+=qty*price});
@@ -524,8 +536,11 @@ document.getElementById('orderTotal').textContent=t;return t}
 
 async function saveOrder(){const date=editingOrderId?editingOrderDate:document.getElementById('selectedDate').value;
 const cid=document.getElementById('orderClient').value,friday=isFriday(date);let items=[],total=0;
-if(friday){let b=70;const ex=[];if(document.getElementById('extraHuevo').checked){const hq=parseInt(document.getElementById('huevoQty').value||1);b+=8*hq;ex.push(hq>1?hq+' huevos':'huevo')}
-if(document.getElementById('extraBistec').checked){b+=20;ex.push('bistec')}items.push({name:'Chilaquiles',price:b,extra:ex.join(', ')});total=b}
+if(friday){let hasDish=false;document.querySelectorAll('.dish-qty-row').forEach(row=>{const qty=parseInt(row.querySelector('.dish-qty').value)||0;if(qty>0){const name=row.dataset.name,price=parseInt(row.dataset.price),gid=row.dataset.id;
+items.push({name,price,guisoId:gid,qty});total+=qty*price;hasDish=true}});
+const hq=parseInt(document.getElementById('huevoQty').value)||0;if(hq>0){extras.push({name:hq>1?hq+' Huevos':'Huevo',price:8*hq});total+=8*hq}
+const bq=parseInt(document.getElementById('bistecQty').value)||0;if(bq>0){extras.push({name:bq>1?bq+' Bistec':'Bistec',price:20*bq});total+=20*bq}
+if(!hasDish){alert('Selecciona al menos un platillo');return}}
 else{let hasDish=false;document.querySelectorAll('.dish-qty-row').forEach(row=>{const qty=parseInt(row.querySelector('.dish-qty').value)||0;if(qty>0){const name=row.dataset.name,price=parseInt(row.dataset.price),gid=row.dataset.id;
 items.push({name,price,guisoId:gid,qty});total+=qty*price;hasDish=true}});
 if(!hasDish){alert('Selecciona al menos un platillo');return}}
@@ -536,9 +551,8 @@ const order={date,clientId:cid,items,extras,aguas,notes,total,paid:false};
 if(editingOrderId){await dbPut('orders',editingOrderId,order)}else{await dbAdd('orders',order)}
 editingOrderId=null;editingOrderDate=null;await loadAll();loadDayOrders();closeModal('orderModal')}
 
-document.getElementById('extraHuevo').addEventListener('change',calcOrderTotal);
-document.getElementById('extraBistec').addEventListener('change',calcOrderTotal);
 document.getElementById('huevoQty').addEventListener('change',calcOrderTotal);
+document.getElementById('bistecQty').addEventListener('change',calcOrderTotal);
 
 // ===== REPORTES =====
 function showReportTab(tab){document.getElementById('reportTab-dia').style.display=tab==='dia'?'block':'none';document.getElementById('reportTab-rango').style.display=tab==='rango'?'block':'none';
