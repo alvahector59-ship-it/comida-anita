@@ -289,8 +289,20 @@ Tu pedido de hoy:
 <!-- MODALES -->
 <div class="modal-overlay" id="orderModal"><div class="modal"><h3 id="orderModalTitle">Nuevo Pedido</h3>
 <div class="form-group"><label>Cliente</label><select id="orderClient"></select></div>
-<div class="form-group"><label>Platillos</label><div id="dishesContainer"></div>
-<button class="btn btn-sm btn-primary" type="button" onclick="addDishItem()" style="margin-top:6px">+ Agregar Platillo</button></div>
+<div class="form-group"><label>Platillos del Menú</label><div id="dishesContainer"></div></div>
+<div id="fridayExtras" style="display:none">
+<div style="display:flex;gap:10px;padding:8px 0">
+<div style="display:flex;align-items:center;gap:6px"><span style="font-size:.9em">🥚 Huevos $8c/u</span>
+<button class="btn btn-sm btn-outline" type="button" onclick="adjGlobal('gHuevo',-1)" style="width:28px;height:28px;padding:0;border-radius:50%">−</button>
+<span id="gHuevo" style="font-weight:800;min-width:20px;text-align:center">0</span>
+<button class="btn btn-sm btn-primary" type="button" onclick="adjGlobal('gHuevo',1)" style="width:28px;height:28px;padding:0;border-radius:50%">+</button></div>
+<div style="display:flex;align-items:center;gap:6px"><span style="font-size:.9em">🥩 Bistec $20c/u</span>
+<button class="btn btn-sm btn-outline" type="button" onclick="adjGlobal('gBistec',-1)" style="width:28px;height:28px;padding:0;border-radius:50%">−</button>
+<span id="gBistec" style="font-weight:800;min-width:20px;text-align:center">0</span>
+<button class="btn btn-sm btn-primary" type="button" onclick="adjGlobal('gBistec',1)" style="width:28px;height:28px;padding:0;border-radius:50%">+</button></div>
+</div></div>
+<div class="form-group"><label>💲 Precio Especial (dejar vacío = precio normal)</label>
+<input type="number" id="precioEspecial" placeholder="Ej: 85" oninput="calcOrderTotal()" style="font-weight:700"></div>
 <div class="form-group"><label>🥤 Aguas</label><div id="aguasContainer"></div></div>
 <div class="form-group"><label>Extras / Especial</label></div><div id="extrasContainer"></div>
 <button class="btn btn-sm btn-warning" onclick="addExtraField()">+ Extra</button>
@@ -480,13 +492,10 @@ const origDate=document.getElementById('selectedDate').value;document.getElement
 await openNewOrder();editingOrderId=o.id;editingOrderDate=o.date;
 document.getElementById('orderModalTitle').textContent='✏️ Editar Pedido';document.getElementById('orderClient').value=o.clientId;
 const friday=isFriday(o.date);
-if(o.items&&o.items.length){
-document.getElementById('dishesContainer').innerHTML='';
-o.items.forEach((item,idx)=>{addDishItem();
-const dishes=document.querySelectorAll('.dish-item');const last=dishes[dishes.length-1];
-const sel=last.querySelector('.dish-select');if(item.guisoId){sel.value=item.guisoId}
-const hEl=last.querySelector('.dish-huevo');if(hEl&&item.extra){const hm=item.extra.match(/(\d+)\s*huevo/i);if(hm)hEl.textContent=hm[1]}
-const bEl=last.querySelector('.dish-bistec');if(bEl&&item.extra&&item.extra.includes('bistec'))bEl.textContent='1'})}
+if(o.items&&o.items.length){o.items.forEach(item=>{const row=document.querySelector('.dish-qty-row[data-id="'+item.guisoId+'"]');if(row)row.querySelector('.dish-qty').textContent=item.qty||1})}
+if(o.extras&&friday){o.extras.forEach(e=>{if(e.name.includes('Huevo')){const el=document.getElementById('gHuevo');if(el)el.textContent=Math.round(e.price/8)}
+if(e.name.includes('Bistec')){const el=document.getElementById('gBistec');if(el)el.textContent=Math.round(e.price/20)}})}
+document.getElementById('precioEspecial').value='';
 if(o.agua){const ag=allAguas.find(a=>a.name===o.agua.name);if(ag){const row=document.querySelector('.agua-qty-row[data-name="'+o.agua.name+'"]');if(row)row.querySelector('.agua-qty').value=1}}
 if(o.aguas){o.aguas.forEach(a=>{const row=document.querySelector('.agua-qty-row[data-name="'+a.name+'"]');if(row)row.querySelector('.agua-qty').value=a.qty||1})}
 document.getElementById('extrasContainer').innerHTML='';(o.extras||[]).forEach(e=>{addExtraField();const items=document.querySelectorAll('#extrasContainer .extra-item');const last=items[items.length-1];last.querySelector('input[type="text"]').value=e.name;last.querySelector('input[type="number"]').value=e.price});
@@ -505,8 +514,10 @@ const dCont=document.getElementById('dishesContainer');const fijos=allGuisos.fil
 let dishOptions;
 if(friday){dishOptions=allGuisos.filter(g=>g.cat==='desayuno')}
 else{const md=await dbGet('dayMenus',date),mg=md&&md.guisoIds&&md.guisoIds.length?md.guisoIds.map(id=>allGuisos.find(g=>g.id===id)).filter(Boolean):[];dishOptions=[...fijos,...mg]}
-window._dishOptions=dishOptions;window._isFriday=friday;
-dCont.innerHTML='';addDishItem();
+dCont.innerHTML=dishOptions.map(g=>'<div class="dish-qty-row" data-id="'+g.id+'" data-name="'+g.name+'" data-price="'+g.price+'" style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)"><span style="flex:1;font-weight:600;font-size:.9em">'+g.name+' <small style="color:var(--text3)">$'+g.price+'</small></span><div style="display:flex;align-items:center;gap:4px"><button class="btn btn-sm btn-outline" type="button" onclick="adjQty(this,-1)" style="width:32px;height:32px;padding:0;border-radius:50%;font-size:1.1em">−</button><span class="dish-qty" style="font-weight:800;font-size:1.1em;min-width:24px;text-align:center">0</span><button class="btn btn-sm btn-primary" type="button" onclick="adjQty(this,1)" style="width:32px;height:32px;padding:0;border-radius:50%;font-size:1.1em">+</button></div></div>').join('');
+document.getElementById('fridayExtras').style.display=friday?'block':'none';
+if(friday){document.getElementById('gHuevo').textContent='0';document.getElementById('gBistec').textContent='0'}
+document.getElementById('precioEspecial').value='';
 document.getElementById('extrasContainer').innerHTML='';document.getElementById('orderNotes').value='';
 document.getElementById('aguasContainer').innerHTML=allAguas.map(a=>'<div class="agua-qty-row" data-id="'+a.id+'" data-name="'+a.name+'" data-price="'+a.price+'" style="display:flex;align-items:center;gap:8px;padding:4px 0"><span style="flex:1;font-size:.88em">🥤 '+a.name+' <small style="color:var(--text3)">$'+a.price+'</small></span><div style="display:flex;align-items:center;gap:4px"><button class="btn btn-sm btn-outline" type="button" onclick="changeAguaQty(this,-1)" style="width:24px;height:24px;padding:0;border-radius:50%;font-size:.9em">−</button><input type="number" class="agua-qty" value="0" min="0" style="width:36px;text-align:center;padding:2px;font-weight:700;font-size:.9em;border-radius:6px" oninput="calcOrderTotal()"><button class="btn btn-sm btn-primary" type="button" onclick="changeAguaQty(this,1)" style="width:24px;height:24px;padding:0;border-radius:50%;font-size:.9em">+</button></div></div>').join('');
 calcOrderTotal();document.getElementById('orderModal').classList.add('active')}
@@ -514,50 +525,34 @@ calcOrderTotal();document.getElementById('orderModal').classList.add('active')}
 function addExtraField(){const d=document.createElement('div');d.className='extra-item';d.innerHTML='<input type="text" placeholder="Descripción" style="flex:2"><input type="number" placeholder="$" style="flex:1" value="0" oninput="calcOrderTotal()"><button class="btn btn-sm btn-danger" onclick="this.parentElement.remove();calcOrderTotal()">✕</button>';document.getElementById('extrasContainer').appendChild(d)}
 
 function changeAguaQty(btn,delta){const input=btn.parentElement.querySelector('.agua-qty');let v=parseInt(input.value)||0;v=Math.max(0,v+delta);input.value=v;calcOrderTotal()}
+function adjQty(btn,delta){const span=btn.parentElement.querySelector('.dish-qty');let v=parseInt(span.textContent)||0;v=Math.max(0,v+delta);span.textContent=v;calcOrderTotal()}
+function adjGlobal(id,delta){const el=document.getElementById(id);let v=parseInt(el.textContent)||0;v=Math.max(0,v+delta);el.textContent=v;calcOrderTotal()}
 
-function addDishItem(){
-const opts=window._dishOptions||[];const friday=window._isFriday;
-const num=document.querySelectorAll('.dish-item').length+1;
-const d=document.createElement('div');d.className='dish-item';d.style.cssText='background:var(--bg);border-radius:12px;padding:12px;margin-bottom:10px;border:2px solid var(--border)';
-let h='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><strong style="font-size:.9em;color:var(--primary)">🍽️ Platillo #'+num+'</strong><button class="btn btn-sm btn-danger" type="button" onclick="if(document.querySelectorAll(\'.dish-item\').length>1){this.closest(\'.dish-item\').remove();renumberDishes2();calcOrderTotal()}" style="border-radius:50%;width:28px;height:28px;padding:0">✕</button></div>';
-h+='<select class="dish-select" onchange="calcOrderTotal()" style="font-size:1em;padding:12px;border-radius:10px;font-weight:600;margin-bottom:8px">'+opts.map(g=>'<option value="'+g.id+'" data-price="'+g.price+'">'+g.name+' — $'+g.price+'</option>').join('')+'</select>';
-if(friday){
-h+='<div style="margin-top:6px"><div style="font-size:.82em;font-weight:700;color:var(--text2);margin-bottom:6px">PERSONALIZAR:</div>';
-h+='<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)"><span style="font-size:.9em">🥚 Huevos <small style="color:var(--text3)">$8 c/u</small></span><div style="display:flex;align-items:center;gap:6px"><button class="btn btn-sm btn-outline" type="button" onclick="adjVal(this,\'.dish-huevo\',-1)" style="width:32px;height:32px;border-radius:50%;padding:0;font-size:1.1em">−</button><span class="dish-huevo" style="font-weight:800;font-size:1.1em;min-width:20px;text-align:center">0</span><button class="btn btn-sm btn-primary" type="button" onclick="adjVal(this,\'.dish-huevo\',1)" style="width:32px;height:32px;border-radius:50%;padding:0;font-size:1.1em">+</button></div></div>';
-h+='<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0"><span style="font-size:.9em">🥩 Bistec <small style="color:var(--text3)">$20</small></span><div style="display:flex;align-items:center;gap:6px"><button class="btn btn-sm btn-outline" type="button" onclick="adjVal(this,\'.dish-bistec\',-1)" style="width:32px;height:32px;border-radius:50%;padding:0;font-size:1.1em">−</button><span class="dish-bistec" style="font-weight:800;font-size:1.1em;min-width:20px;text-align:center">0</span><button class="btn btn-sm btn-primary" type="button" onclick="adjVal(this,\'.dish-bistec\',1)" style="width:32px;height:32px;border-radius:50%;padding:0;font-size:1.1em">+</button></div></div>';
-h+='</div>'}
-d.innerHTML=h;document.getElementById('dishesContainer').appendChild(d);calcOrderTotal()}
-
-function adjVal(btn,cls,delta){const container=btn.closest('.dish-item');const el=container.querySelector(cls);let v=parseInt(el.textContent)||0;v=Math.max(0,v+delta);el.textContent=v;calcOrderTotal()}
-function renumberDishes2(){document.querySelectorAll('.dish-item').forEach((d,i)=>{const s=d.querySelector('strong');if(s)s.textContent='🍽️ Platillo #'+(i+1)})}
-
-function calcOrderTotal(){let t=0;
-document.querySelectorAll('.dish-item').forEach(d=>{
-const sel=d.querySelector('.dish-select');if(sel){const opt=sel.options[sel.selectedIndex];t+=parseInt(opt.dataset.price)||0}
-const hEl=d.querySelector('.dish-huevo');if(hEl)t+=8*parseInt(hEl.textContent||0);
-const bEl=d.querySelector('.dish-bistec');if(bEl)t+=20*parseInt(bEl.textContent||0)});
+function calcOrderTotal(){
+const pe=document.getElementById('precioEspecial').value;
+if(pe&&parseInt(pe)>0){document.getElementById('orderTotal').textContent=parseInt(pe);return parseInt(pe)}
+let t=0;
+document.querySelectorAll('.dish-qty-row').forEach(row=>{const qty=parseInt(row.querySelector('.dish-qty').textContent)||0;const price=parseInt(row.dataset.price)||0;t+=qty*price});
+const hq=document.getElementById('gHuevo');if(hq&&document.getElementById('fridayExtras').style.display!=='none')t+=8*(parseInt(hq.textContent)||0);
+const bq=document.getElementById('gBistec');if(bq&&document.getElementById('fridayExtras').style.display!=='none')t+=20*(parseInt(bq.textContent)||0);
 document.querySelectorAll('.agua-qty-row').forEach(row=>{const qty=parseInt(row.querySelector('.agua-qty').value)||0;const price=parseInt(row.dataset.price)||0;t+=qty*price});
 document.querySelectorAll('#extrasContainer .extra-item').forEach(i=>{t+=parseInt(i.querySelector('input[type="number"]').value)||0});
 document.getElementById('orderTotal').textContent=t;return t}
 
 async function saveOrder(){const date=editingOrderId?editingOrderDate:document.getElementById('selectedDate').value;
 const cid=document.getElementById('orderClient').value,friday=isFriday(date);let items=[],total=0;
-if(friday){let hasDish=false;document.querySelectorAll('.dish-item').forEach(d=>{
-const sel=d.querySelector('.dish-select');const opt=sel.options[sel.selectedIndex];
-const name=opt.text.split(' - ')[0],price=parseInt(opt.dataset.price),gid=sel.value;
-let extra=[];const hEl=d.querySelector('.dish-huevo');if(hEl&&parseInt(hEl.textContent)>0)extra.push(hEl.textContent+' huevo'+(parseInt(hEl.textContent)>1?'s':''));
-const bEl=d.querySelector('.dish-bistec');if(bEl&&parseInt(bEl.textContent)>0)extra.push('bistec');
-let itemPrice=price;if(hEl)itemPrice+=8*parseInt(hEl.textContent||0);if(bEl)itemPrice+=20*parseInt(bEl.textContent||0);
-items.push({name,price:itemPrice,guisoId:gid,qty:1,extra:extra.join(', ')});total+=itemPrice;hasDish=true});
+if(friday){let hasDish=false;document.querySelectorAll('.dish-qty-row').forEach(row=>{const qty=parseInt(row.querySelector('.dish-qty').textContent)||0;if(qty>0){
+items.push({name:row.dataset.name,price:parseInt(row.dataset.price),guisoId:row.dataset.id,qty});total+=qty*parseInt(row.dataset.price);hasDish=true}});
+const hq=parseInt(document.getElementById('gHuevo').textContent)||0;if(hq>0){extras.push({name:hq+' Huevo'+(hq>1?'s':''),price:8*hq});total+=8*hq}
+const bq=parseInt(document.getElementById('gBistec').textContent)||0;if(bq>0){extras.push({name:bq+' Bistec',price:20*bq});total+=20*bq}
 if(!hasDish){alert('Agrega al menos un platillo');return}}
-else{let hasDish=false;document.querySelectorAll('.dish-item').forEach(d=>{
-const sel=d.querySelector('.dish-select');const opt=sel.options[sel.selectedIndex];
-const name=opt.text.split(' - ')[0],price=parseInt(opt.dataset.price),gid=sel.value;
-items.push({name,price,guisoId:gid,qty:1});total+=price;hasDish=true});
+else{let hasDish=false;document.querySelectorAll('.dish-qty-row').forEach(row=>{const qty=parseInt(row.querySelector('.dish-qty').textContent)||0;if(qty>0){
+items.push({name:row.dataset.name,price:parseInt(row.dataset.price),guisoId:row.dataset.id,qty});total+=qty*parseInt(row.dataset.price);hasDish=true}});
 if(!hasDish){alert('Selecciona al menos un platillo');return}}
 const extras=[];document.querySelectorAll('#extrasContainer .extra-item').forEach(i=>{const n=i.querySelector('input[type="text"]').value.trim(),p=parseInt(i.querySelector('input[type="number"]').value)||0;if(n&&p>0){extras.push({name:n,price:p});total+=p}});
 const notes=document.getElementById('orderNotes').value.trim();
 const aguas=[];document.querySelectorAll('.agua-qty-row').forEach(row=>{const qty=parseInt(row.querySelector('.agua-qty').value)||0;if(qty>0){const name=row.dataset.name,price=parseInt(row.dataset.price);aguas.push({name,price,qty});total+=qty*price}});
+const pe=document.getElementById('precioEspecial').value;if(pe&&parseInt(pe)>0)total=parseInt(pe);
 const order={date,clientId:cid,items,extras,aguas,notes,total,paid:false};
 if(editingOrderId){await dbPut('orders',editingOrderId,order)}else{await dbAdd('orders',order)}
 editingOrderId=null;editingOrderDate=null;await loadAll();loadDayOrders();closeModal('orderModal')}
