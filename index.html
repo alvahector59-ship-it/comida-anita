@@ -554,7 +554,6 @@ else{let hasDish=false;document.querySelectorAll('.dish-item').forEach(d=>{
 const sel=d.querySelector('.dish-select');const opt=sel.options[sel.selectedIndex];
 const name=opt.text.split(' - ')[0],price=parseInt(opt.dataset.price),gid=sel.value;
 items.push({name,price,guisoId:gid,qty:1});total+=price;hasDish=true});
-items.push({name,price,guisoId:gid,qty});total+=qty*price;hasDish=true}});
 if(!hasDish){alert('Selecciona al menos un platillo');return}}
 const extras=[];document.querySelectorAll('#extrasContainer .extra-item').forEach(i=>{const n=i.querySelector('input[type="text"]').value.trim(),p=parseInt(i.querySelector('input[type="number"]').value)||0;if(n&&p>0){extras.push({name:n,price:p});total+=p}});
 const notes=document.getElementById('orderNotes').value.trim();
@@ -894,7 +893,9 @@ const cfg=await dbGet('config','sound');if(cfg)document.getElementById('soundEna
 const cmsg=await dbGet('config','cobroMsg');if(cmsg)document.getElementById('cobroMsg').value=cmsg.value;
 const mmsg=await dbGet('config','menuMsg');if(mmsg)document.getElementById('menuMsg').value=mmsg.value;
 if(localStorage.getItem('theme')==='dark'){document.body.setAttribute('data-theme','dark');document.querySelector('.theme-toggle').textContent='☀️'}
-loadDayOrders();updateHeaderInfo();hideSplash();if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{})}init().catch(e=>console.error('Init error:',e));
+loadDayOrders();updateHeaderInfo();if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{})}
+hideSplash();
+init().catch(e=>{console.error('Init error:',e);hideSplash()});
 </script>
 </body>
 </html>
