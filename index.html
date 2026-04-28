@@ -132,7 +132,7 @@ tr{transition:.15s}tr:hover{background:var(--bg)}
 <div class="form-group"><input type="password" id="loginPass" placeholder="🔒 Contraseña" style="text-align:center;font-size:1em;padding:14px;border-radius:12px;border:2px solid #dfe6e9;background:#fff" onkeydown="if(event.key==='Enter')doLogin()"></div>
 <div id="loginError" style="color:#d63031;font-size:.85em;margin-bottom:8px;display:none">❌ Datos incorrectos</div>
 <button class="btn btn-primary" onclick="doLogin()" style="width:100%;padding:14px;font-size:1.05em;border-radius:12px;font-weight:700;letter-spacing:.3px;box-shadow:0 4px 15px rgba(214,48,49,.3)">Entrar</button>
-<p style="color:#b2bec3;font-size:.7em;margin-top:16px">© 2026 Comida Anita v2.2</p>
+<p style="color:#b2bec3;font-size:.7em;margin-top:16px">© 2026 Comida Anita v2.3</p>
 </div></div>
 <div id="appContent" style="display:none">
 <div class="header"><h1>🔥 Comida Anita</h1><div class="header-right"><div class="header-sales" id="headerSales">$0 hoy</div><div class="date-info" id="headerDate"></div>
@@ -495,9 +495,13 @@ await openNewOrder();editingOrderId=o.id;editingOrderDate=o.date;
 document.getElementById('orderModalTitle').textContent='✏️ Editar Pedido';
 document.getElementById('orderClient').value=o.clientId;
 const friday=isFriday(o.date);
-if(o.items&&o.items.length){o.items.forEach(item=>{const row=document.querySelector('.dish-qty-row[data-id="'+item.guisoId+'"]');if(row)row.querySelector('.dish-qty').textContent=item.qty||1})}
-if(o.extras&&friday){o.extras.forEach(e=>{if(e.name.includes('Huevo')){const el=document.getElementById('gHuevo');if(el)el.textContent=Math.round(e.price/8)}
-if(e.name.includes('Bistec')){const el=document.getElementById('gBistec');if(el)el.textContent=Math.round(e.price/20)}})}
+if(o.items&&o.items.length){
+if(friday){document.getElementById('dishesContainer').innerHTML='';const btn=document.getElementById('addFriBtn');if(btn)btn.remove();
+o.items.forEach(item=>{addFridayDish();const cards=document.querySelectorAll('.friday-dish');const last=cards[cards.length-1];
+if(item.guisoId){last.querySelector('.fri-select').value=item.guisoId}
+if(item.extra){const hm=item.extra.match(/(\d+)\s*huevo/i);if(hm)last.querySelector('.fri-huevo').textContent=hm[1];
+if(item.extra.includes('bistec'))last.querySelector('.fri-bistec').textContent='1'}})}
+else{o.items.forEach(item=>{const row=document.querySelector('.dish-qty-row[data-id="'+item.guisoId+'"]');if(row)row.querySelector('.dish-qty').textContent=item.qty||1})}}
 document.getElementById('precioEspecial').value='';
 if(o.agua){const ag=allAguas.find(a=>a.name===o.agua.name);if(ag){const row=document.querySelector('.agua-qty-row[data-name="'+o.agua.name+'"]');if(row)row.querySelector('.agua-qty').value=1}}
 if(o.aguas){o.aguas.forEach(a=>{const row=document.querySelector('.agua-qty-row[data-name="'+a.name+'"]');if(row)row.querySelector('.agua-qty').value=a.qty||1})}
@@ -513,15 +517,22 @@ const allSorted=[...allClients].sort((a,b)=>a.name.localeCompare(b.name));
 sel.innerHTML='<option value="">-- Seleccionar cliente --</option>'+allSorted.map(c=>'<option value="'+c.id+'">'+c.name+'</option>').join('');
 // selectClient removed - using native select
 const dCont=document.getElementById('dishesContainer');const fijos=allGuisos.filter(g=>g.cat==='fijo');
-let dishOptions;
-if(friday){dishOptions=allGuisos.filter(g=>g.cat==='desayuno')}
-else{const md=await dbGet('dayMenus',date),mg=md&&md.guisoIds&&md.guisoIds.length?md.guisoIds.map(id=>allGuisos.find(g=>g.id===id)).filter(Boolean):[];dishOptions=[...fijos,...mg]}
+if(friday){
+window._fridayDishes=allGuisos.filter(g=>g.cat==='desayuno');
+dCont.innerHTML='';addFridayDish();
+document.getElementById('fridayExtras').style.display='none';
+}else{
+const md=await dbGet('dayMenus',date),mg=md&&md.guisoIds&&md.guisoIds.length?md.guisoIds.map(id=>allGuisos.find(g=>g.id===id)).filter(Boolean):[];
+const dishOptions=[...fijos,...mg];
 dCont.innerHTML=dishOptions.map(g=>'<div class="dish-qty-row" data-id="'+g.id+'" data-name="'+g.name+'" data-price="'+g.price+'" style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)"><span style="flex:1;font-weight:600;font-size:.9em">'+g.name+' <small style="color:var(--text3)">$'+g.price+'</small></span><div style="display:flex;align-items:center;gap:4px"><button class="btn btn-sm btn-outline" type="button" onclick="adjQty(this,-1)" style="width:32px;height:32px;padding:0;border-radius:50%;font-size:1.1em">−</button><span class="dish-qty" style="font-weight:800;font-size:1.1em;min-width:24px;text-align:center">0</span><button class="btn btn-sm btn-primary" type="button" onclick="adjQty(this,1)" style="width:32px;height:32px;padding:0;border-radius:50%;font-size:1.1em">+</button></div></div>').join('');
-document.getElementById('fridayExtras').style.display=friday?'block':'none';
-if(friday){document.getElementById('gHuevo').textContent='0';document.getElementById('gBistec').textContent='0'}
+document.getElementById('fridayExtras').style.display='none';}
 document.getElementById('precioEspecial').value='';
 document.getElementById('extrasContainer').innerHTML='';document.getElementById('orderNotes').value='';
 document.getElementById('aguasContainer').innerHTML=allAguas.map(a=>'<div class="agua-qty-row" data-id="'+a.id+'" data-name="'+a.name+'" data-price="'+a.price+'" style="display:flex;align-items:center;gap:8px;padding:4px 0"><span style="flex:1;font-size:.88em">🥤 '+a.name+' <small style="color:var(--text3)">$'+a.price+'</small></span><div style="display:flex;align-items:center;gap:4px"><button class="btn btn-sm btn-outline" type="button" onclick="changeAguaQty(this,-1)" style="width:24px;height:24px;padding:0;border-radius:50%;font-size:.9em">−</button><input type="number" class="agua-qty" value="0" min="0" style="width:36px;text-align:center;padding:2px;font-weight:700;font-size:.9em;border-radius:6px" oninput="calcOrderTotal()"><button class="btn btn-sm btn-primary" type="button" onclick="changeAguaQty(this,1)" style="width:24px;height:24px;padding:0;border-radius:50%;font-size:.9em">+</button></div></div>').join('');
+const aguaWrap=document.querySelector('[id="aguasContainer"]').closest('.form-group');
+if(friday){aguaWrap.style.display='none';
+let tb=document.getElementById('toggleBebidasBtn');if(!tb){tb=document.createElement('button');tb.id='toggleBebidasBtn';tb.className='btn btn-sm btn-outline';tb.type='button';tb.style.cssText='margin-bottom:8px';tb.textContent='🥤 Agregar Bebidas';tb.onclick=function(){aguaWrap.style.display='block';tb.style.display='none'};aguaWrap.before(tb)}else{tb.style.display='block'}}
+else{aguaWrap.style.display='block';const tb=document.getElementById('toggleBebidasBtn');if(tb)tb.style.display='none'}
 calcOrderTotal();document.getElementById('orderModal').classList.add('active')}
 
 function addExtraField(){const d=document.createElement('div');d.className='extra-item';d.innerHTML='<input type="text" placeholder="Descripción" style="flex:2"><input type="number" placeholder="$" style="flex:1" value="0" oninput="calcOrderTotal()"><button class="btn btn-sm btn-danger" onclick="this.parentElement.remove();calcOrderTotal()">✕</button>';document.getElementById('extrasContainer').appendChild(d)}
@@ -530,12 +541,26 @@ function changeAguaQty(btn,delta){const input=btn.parentElement.querySelector('.
 function adjQty(btn,delta){const span=btn.parentElement.querySelector('.dish-qty');let v=parseInt(span.textContent)||0;v=Math.max(0,v+delta);span.textContent=v;calcOrderTotal()}
 function adjGlobal(id,delta){const el=document.getElementById(id);let v=parseInt(el.textContent)||0;v=Math.max(0,v+delta);el.textContent=v;calcOrderTotal()}
 
+function addFridayDish(){
+const opts=window._fridayDishes||[];const num=document.querySelectorAll('.friday-dish').length+1;
+const d=document.createElement('div');d.className='friday-dish';d.style.cssText='background:var(--bg);border-radius:12px;padding:12px;margin-bottom:8px;border:2px solid var(--border)';
+d.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><strong style="color:var(--primary);font-size:.9em">🍽️ Desayuno #'+num+'</strong><button class="btn btn-sm btn-danger" type="button" onclick="if(document.querySelectorAll(\'.friday-dish\').length>1){this.closest(\'.friday-dish\').remove();reNumFriday();calcOrderTotal()}" style="border-radius:50%;width:28px;height:28px;padding:0">✕</button></div>'+
+'<select class="fri-select" onchange="calcOrderTotal()" style="font-size:1em;padding:10px;border-radius:10px;font-weight:600;margin-bottom:8px">'+opts.map(g=>'<option value="'+g.id+'" data-price="'+g.price+'">'+g.name+' — $'+g.price+'</option>').join('')+'</select>'+
+'<div style="display:flex;gap:12px;font-size:.88em"><div style="display:flex;align-items:center;gap:4px">🥚 Huevos $8:<button class="btn btn-sm btn-outline" type="button" onclick="adjFri(this,\'.fri-huevo\',-1)" style="width:28px;height:28px;padding:0;border-radius:50%">−</button><span class="fri-huevo" style="font-weight:800;min-width:18px;text-align:center">0</span><button class="btn btn-sm btn-primary" type="button" onclick="adjFri(this,\'.fri-huevo\',1)" style="width:28px;height:28px;padding:0;border-radius:50%">+</button></div>'+
+'<div style="display:flex;align-items:center;gap:4px">🥩 Bistec $20:<button class="btn btn-sm btn-outline" type="button" onclick="adjFri(this,\'.fri-bistec\',-1)" style="width:28px;height:28px;padding:0;border-radius:50%">−</button><span class="fri-bistec" style="font-weight:800;min-width:18px;text-align:center">0</span><button class="btn btn-sm btn-primary" type="button" onclick="adjFri(this,\'.fri-bistec\',1)" style="width:28px;height:28px;padding:0;border-radius:50%">+</button></div></div>';
+document.getElementById('dishesContainer').appendChild(d);
+// Agregar botón si no existe
+if(!document.getElementById('addFriBtn')){const btn=document.createElement('button');btn.id='addFriBtn';btn.className='btn btn-sm btn-primary';btn.type='button';btn.style.cssText='margin-top:6px;margin-bottom:8px';btn.textContent='+ Agregar otro desayuno';btn.onclick=addFridayDish;document.getElementById('dishesContainer').after(btn)}
+calcOrderTotal()}
+function adjFri(btn,cls,delta){const card=btn.closest('.friday-dish');const el=card.querySelector(cls);let v=parseInt(el.textContent)||0;v=Math.max(0,v+delta);el.textContent=v;calcOrderTotal()}
+function reNumFriday(){document.querySelectorAll('.friday-dish').forEach((d,i)=>{const s=d.querySelector('strong');if(s)s.textContent='🍽️ Desayuno #'+(i+1)})}
+
 function calcOrderTotal(){
 const pe=parseInt(document.getElementById('precioEspecial').value)||0;
-let t=0,totalQty=0;
-document.querySelectorAll('.dish-qty-row').forEach(row=>{const qty=parseInt(row.querySelector('.dish-qty').textContent)||0;const price=pe>0?pe:parseInt(row.dataset.price)||0;t+=qty*price;totalQty+=qty});
-const hq=document.getElementById('gHuevo');if(hq&&document.getElementById('fridayExtras').style.display!=='none')t+=8*(parseInt(hq.textContent)||0);
-const bq=document.getElementById('gBistec');if(bq&&document.getElementById('fridayExtras').style.display!=='none')t+=20*(parseInt(bq.textContent)||0);
+let t=0;
+document.querySelectorAll('.dish-qty-row').forEach(row=>{const qty=parseInt(row.querySelector('.dish-qty').textContent)||0;const price=pe>0?pe:parseInt(row.dataset.price)||0;t+=qty*price});
+document.querySelectorAll('.friday-dish').forEach(d=>{const sel=d.querySelector('.fri-select');if(sel){const opt=sel.options[sel.selectedIndex];t+=pe>0?pe:parseInt(opt.dataset.price)||0}
+const h=d.querySelector('.fri-huevo');if(h)t+=8*(parseInt(h.textContent)||0);const b=d.querySelector('.fri-bistec');if(b)t+=20*(parseInt(b.textContent)||0)});
 document.querySelectorAll('.agua-qty-row').forEach(row=>{const qty=parseInt(row.querySelector('.agua-qty').value)||0;const price=parseInt(row.dataset.price)||0;t+=qty*price});
 document.querySelectorAll('#extrasContainer .extra-item').forEach(i=>{t+=parseInt(i.querySelector('input[type="number"]').value)||0});
 document.getElementById('orderTotal').textContent=t;return t}
@@ -545,11 +570,15 @@ const cid=document.getElementById('orderClient').value,friday=isFriday(date);
 if(!cid){alert('Selecciona un cliente');return}
 let items=[],total=0,fridayExtras=[];
 const pe=parseInt(document.getElementById('precioEspecial').value)||0;
-if(friday){let hasDish=false;document.querySelectorAll('.dish-qty-row').forEach(row=>{const qty=parseInt(row.querySelector('.dish-qty').textContent)||0;if(qty>0){const price=pe>0?pe:parseInt(row.dataset.price);
-items.push({name:row.dataset.name,price:price,guisoId:row.dataset.id,qty});total+=qty*price;hasDish=true}});
-const hq=parseInt(document.getElementById('gHuevo').textContent)||0;if(hq>0){fridayExtras.push({name:hq+' Huevo'+(hq>1?'s':''),price:8*hq});total+=8*hq}
-const bq=parseInt(document.getElementById('gBistec').textContent)||0;if(bq>0){fridayExtras.push({name:bq+' Bistec',price:20*bq});total+=20*bq}
-if(!hasDish){alert('Agrega al menos un platillo');return}}
+if(friday){let hasDish=false;document.querySelectorAll('.friday-dish').forEach(d=>{
+const sel=d.querySelector('.fri-select');const opt=sel.options[sel.selectedIndex];
+const name=opt.text.split(' — ')[0],price=pe>0?pe:parseInt(opt.dataset.price),gid=sel.value;
+const hq=parseInt(d.querySelector('.fri-huevo').textContent)||0;
+const bq=parseInt(d.querySelector('.fri-bistec').textContent)||0;
+let extra=[];if(hq>0)extra.push(hq+' huevo'+(hq>1?'s':''));if(bq>0)extra.push('bistec');
+let itemPrice=price+(hq*8)+(bq*20);
+items.push({name,price:itemPrice,guisoId:gid,qty:1,extra:extra.join(', ')});total+=itemPrice;hasDish=true});
+if(!hasDish){alert('Agrega al menos un desayuno');return}}
 else{let hasDish=false;document.querySelectorAll('.dish-qty-row').forEach(row=>{const qty=parseInt(row.querySelector('.dish-qty').textContent)||0;if(qty>0){const price=pe>0?pe:parseInt(row.dataset.price);
 items.push({name:row.dataset.name,price:price,guisoId:row.dataset.id,qty});total+=qty*price;hasDish=true}});
 if(!hasDish){alert('Selecciona al menos un platillo');return}}
