@@ -500,7 +500,8 @@ if(friday){document.getElementById('dishesContainer').innerHTML='';const btn=doc
 o.items.forEach(item=>{addFridayDish();const cards=document.querySelectorAll('.friday-dish');const last=cards[cards.length-1];
 if(item.guisoId){last.querySelector('.fri-select').value=item.guisoId}
 if(item.extra){const hm=item.extra.match(/(\d+)\s*huevo/i);if(hm)last.querySelector('.fri-huevo').textContent=hm[1];
-if(item.extra.includes('bistec'))last.querySelector('.fri-bistec').textContent='1'}})}
+if(item.extra.includes('bistec'))last.querySelector('.fri-bistec').textContent='1';
+const parts=item.extra.split(', ').filter(p=>!p.match(/huevo|bistec/i));if(parts.length)last.querySelector('.fri-nota').value=parts.join(', ')}})}
 else{o.items.forEach(item=>{const row=document.querySelector('.dish-qty-row[data-id="'+item.guisoId+'"]');if(row)row.querySelector('.dish-qty').textContent=item.qty||1})}}
 document.getElementById('precioEspecial').value='';
 if(o.agua){const ag=allAguas.find(a=>a.name===o.agua.name);if(ag){const row=document.querySelector('.agua-qty-row[data-name="'+o.agua.name+'"]');if(row)row.querySelector('.agua-qty').value=1}}
@@ -518,7 +519,7 @@ sel.innerHTML='<option value="">-- Seleccionar cliente --</option>'+allSorted.ma
 // selectClient removed - using native select
 const dCont=document.getElementById('dishesContainer');const fijos=allGuisos.filter(g=>g.cat==='fijo');
 if(friday){
-window._fridayDishes=allGuisos.filter(g=>g.cat==='desayuno');
+window._fridayDishes=allGuisos.filter(g=>g.cat==='desayuno').sort((a,b)=>a.name==='Chilaquiles'?-1:b.name==='Chilaquiles'?1:a.name.localeCompare(b.name));
 dCont.innerHTML='';addFridayDish();
 document.getElementById('fridayExtras').style.display='none';
 }else{
@@ -547,7 +548,8 @@ const d=document.createElement('div');d.className='friday-dish';d.style.cssText=
 d.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><strong style="color:var(--primary);font-size:.9em">🍽️ Desayuno #'+num+'</strong><button class="btn btn-sm btn-danger" type="button" onclick="if(document.querySelectorAll(\'.friday-dish\').length>1){this.closest(\'.friday-dish\').remove();reNumFriday();calcOrderTotal()}" style="border-radius:50%;width:28px;height:28px;padding:0">✕</button></div>'+
 '<select class="fri-select" onchange="calcOrderTotal()" style="font-size:1em;padding:10px;border-radius:10px;font-weight:600;margin-bottom:8px">'+opts.map(g=>'<option value="'+g.id+'" data-price="'+g.price+'">'+g.name+' — $'+g.price+'</option>').join('')+'</select>'+
 '<div style="display:flex;gap:12px;font-size:.88em"><div style="display:flex;align-items:center;gap:4px">🥚 Huevos $8:<button class="btn btn-sm btn-outline" type="button" onclick="adjFri(this,\'.fri-huevo\',-1)" style="width:28px;height:28px;padding:0;border-radius:50%">−</button><span class="fri-huevo" style="font-weight:800;min-width:18px;text-align:center">0</span><button class="btn btn-sm btn-primary" type="button" onclick="adjFri(this,\'.fri-huevo\',1)" style="width:28px;height:28px;padding:0;border-radius:50%">+</button></div>'+
-'<div style="display:flex;align-items:center;gap:4px">🥩 Bistec $20:<button class="btn btn-sm btn-outline" type="button" onclick="adjFri(this,\'.fri-bistec\',-1)" style="width:28px;height:28px;padding:0;border-radius:50%">−</button><span class="fri-bistec" style="font-weight:800;min-width:18px;text-align:center">0</span><button class="btn btn-sm btn-primary" type="button" onclick="adjFri(this,\'.fri-bistec\',1)" style="width:28px;height:28px;padding:0;border-radius:50%">+</button></div></div>';
+'<div style="display:flex;align-items:center;gap:4px">🥩 Bistec $20:<button class="btn btn-sm btn-outline" type="button" onclick="adjFri(this,\'.fri-bistec\',-1)" style="width:28px;height:28px;padding:0;border-radius:50%">−</button><span class="fri-bistec" style="font-weight:800;min-width:18px;text-align:center">0</span><button class="btn btn-sm btn-primary" type="button" onclick="adjFri(this,\'.fri-bistec\',1)" style="width:28px;height:28px;padding:0;border-radius:50%">+</button></div></div>'+
+'<input type="text" class="fri-nota" placeholder="📝 Ej: sin cebolla, sin crema..." style="margin-top:6px;font-size:.85em;padding:8px">';
 document.getElementById('dishesContainer').appendChild(d);
 // Agregar botón si no existe
 if(!document.getElementById('addFriBtn')){const btn=document.createElement('button');btn.id='addFriBtn';btn.className='btn btn-sm btn-primary';btn.type='button';btn.style.cssText='margin-top:6px;margin-bottom:8px';btn.textContent='+ Agregar otro desayuno';btn.onclick=addFridayDish;document.getElementById('dishesContainer').after(btn)}
@@ -575,7 +577,8 @@ const sel=d.querySelector('.fri-select');const opt=sel.options[sel.selectedIndex
 const name=opt.text.split(' — ')[0],price=pe>0?pe:parseInt(opt.dataset.price),gid=sel.value;
 const hq=parseInt(d.querySelector('.fri-huevo').textContent)||0;
 const bq=parseInt(d.querySelector('.fri-bistec').textContent)||0;
-let extra=[];if(hq>0)extra.push(hq+' huevo'+(hq>1?'s':''));if(bq>0)extra.push('bistec');
+const nota=(d.querySelector('.fri-nota').value||'').trim();
+let extra=[];if(hq>0)extra.push(hq+' huevo'+(hq>1?'s':''));if(bq>0)extra.push('bistec');if(nota)extra.push(nota);
 let itemPrice=price+(hq*8)+(bq*20);
 items.push({name,price:itemPrice,guisoId:gid,qty:1,extra:extra.join(', ')});total+=itemPrice;hasDish=true});
 if(!hasDish){alert('Agrega al menos un desayuno');return}}
