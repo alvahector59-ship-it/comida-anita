@@ -132,7 +132,7 @@ tr{transition:.15s}tr:hover{background:var(--bg)}
 <div class="form-group"><input type="password" id="loginPass" placeholder="🔒 Contraseña" style="text-align:center;font-size:1em;padding:14px;border-radius:12px;border:2px solid #dfe6e9;background:#fff" onkeydown="if(event.key==='Enter')doLogin()"></div>
 <div id="loginError" style="color:#d63031;font-size:.85em;margin-bottom:8px;display:none">❌ Datos incorrectos</div>
 <button class="btn btn-primary" onclick="doLogin()" style="width:100%;padding:14px;font-size:1.05em;border-radius:12px;font-weight:700;letter-spacing:.3px;box-shadow:0 4px 15px rgba(214,48,49,.3)">Entrar</button>
-<p style="color:#b2bec3;font-size:.7em;margin-top:16px">© 2026 Comida Anita v2.1</p>
+<p style="color:#b2bec3;font-size:.7em;margin-top:16px">© 2026 Comida Anita v2.2</p>
 </div></div>
 <div id="appContent" style="display:none">
 <div class="header"><h1>🔥 Comida Anita</h1><div class="header-right"><div class="header-sales" id="headerSales">$0 hoy</div><div class="date-info" id="headerDate"></div>
@@ -541,17 +541,19 @@ document.querySelectorAll('#extrasContainer .extra-item').forEach(i=>{t+=parseIn
 document.getElementById('orderTotal').textContent=t;return t}
 
 async function saveOrder(){const date=editingOrderId?editingOrderDate:document.getElementById('selectedDate').value;
-const cid=document.getElementById('orderClient').value,friday=isFriday(date);let items=[],total=0;
+const cid=document.getElementById('orderClient').value,friday=isFriday(date);
+if(!cid){alert('Selecciona un cliente');return}
+let items=[],total=0,fridayExtras=[];
 const pe=parseInt(document.getElementById('precioEspecial').value)||0;
 if(friday){let hasDish=false;document.querySelectorAll('.dish-qty-row').forEach(row=>{const qty=parseInt(row.querySelector('.dish-qty').textContent)||0;if(qty>0){const price=pe>0?pe:parseInt(row.dataset.price);
 items.push({name:row.dataset.name,price:price,guisoId:row.dataset.id,qty});total+=qty*price;hasDish=true}});
-const hq=parseInt(document.getElementById('gHuevo').textContent)||0;if(hq>0){extras.push({name:hq+' Huevo'+(hq>1?'s':''),price:8*hq});total+=8*hq}
-const bq=parseInt(document.getElementById('gBistec').textContent)||0;if(bq>0){extras.push({name:bq+' Bistec',price:20*bq});total+=20*bq}
+const hq=parseInt(document.getElementById('gHuevo').textContent)||0;if(hq>0){fridayExtras.push({name:hq+' Huevo'+(hq>1?'s':''),price:8*hq});total+=8*hq}
+const bq=parseInt(document.getElementById('gBistec').textContent)||0;if(bq>0){fridayExtras.push({name:bq+' Bistec',price:20*bq});total+=20*bq}
 if(!hasDish){alert('Agrega al menos un platillo');return}}
 else{let hasDish=false;document.querySelectorAll('.dish-qty-row').forEach(row=>{const qty=parseInt(row.querySelector('.dish-qty').textContent)||0;if(qty>0){const price=pe>0?pe:parseInt(row.dataset.price);
 items.push({name:row.dataset.name,price:price,guisoId:row.dataset.id,qty});total+=qty*price;hasDish=true}});
 if(!hasDish){alert('Selecciona al menos un platillo');return}}
-const extras=[];document.querySelectorAll('#extrasContainer .extra-item').forEach(i=>{const n=i.querySelector('input[type="text"]').value.trim(),p=parseInt(i.querySelector('input[type="number"]').value)||0;if(n&&p>0){extras.push({name:n,price:p});total+=p}});
+const extras=[...fridayExtras];document.querySelectorAll('#extrasContainer .extra-item').forEach(i=>{const n=i.querySelector('input[type="text"]').value.trim(),p=parseInt(i.querySelector('input[type="number"]').value)||0;if(n&&p>0){extras.push({name:n,price:p});total+=p}});
 const notes=document.getElementById('orderNotes').value.trim();
 const aguas=[];document.querySelectorAll('.agua-qty-row').forEach(row=>{const qty=parseInt(row.querySelector('.agua-qty').value)||0;if(qty>0){const name=row.dataset.name,price=parseInt(row.dataset.price);aguas.push({name,price,qty});total+=qty*price}});
 const order={date,clientId:cid,items,extras,aguas,notes,total,paid:false};
